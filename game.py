@@ -45,29 +45,6 @@ def flipImages(image_list):
     return fliped_images
 
 
-def check_collision(static_rect, moving_rect, vel_x, vel_y):
-    # x- direction
-    moving_rect_props = (moving_rect.x + vel_x, moving_rect.y, moving_rect.width, moving_rect.height)
-    if static_rect.colliderect(moving_rect_props):
-            vel_x = 0
-
-            #check for collision in y direction
-            moving_rect_props = (moving_rect.x, moving_rect.y + vel_y, moving_rect.width, moving_rect.height)
-            if static_rect.colliderect(moving_rect_props):
-                #check if below the platform i.e. jumping
-                if(vel_y < 0):
-                    vel_y = static_rect.bottom - moving_rect.top
-                elif(vel_y > 0): #check if above the platform i.e. falling
-                    vel_y = static_rect.top - moving_rect.bottom
-
-    # make player to stand on platform
-    # y- direction
-    static_rect_props = (static_rect.x, static_rect.y - vel_y, static_rect.width, static_rect.height)
-    if(moving_rect.colliderect(static_rect_props)):
-        vel_y = 0
-    return vel_x, vel_y
-
-
 # --------- Jumping Joe -----------
 platforms = []
 coin_animation_counter = 0
@@ -102,7 +79,7 @@ bird_right_surf = loadImages(["assets/bird/1.png","assets/bird/2.png",
 egg_surf = loadImages(["assets/egg.png"])
 energy_ball_surf = loadImages(["assets/energyball.png"])
 ufo_surf = loadImages(["assets/ufo.png"])
-score_surf =loadImages(["assets/scoreimg.png"])
+
 
 
 # scale images
@@ -127,13 +104,8 @@ player_rect.center =(250,300)
 enemy_rect = pygame.Rect(10, 10, 60, 60)
 egg_rect = pygame.Rect(10,10,egg_surf[0].get_width(),egg_surf[0].get_height())
 
-
-
-
-
-
 score_font = pygame.font.Font('freesansbold.ttf', 16)
-over_font = pygame.font.Font('freesansbold.ttf', 25)
+
 
 def createPlatform(x,y):
     global platforms
@@ -144,11 +116,11 @@ def createPlatform(x,y):
         })
 
 def gameControls(event):
-    global player_surf, player_right_surf, player_left_surf
+    global player_surf, player_right_surf, player_left_surf, can_jump
     global player_vel_x, player_vel_y, player_animation_counter
     global score, player_rect, collected_coins, enemy_rect, enemy_vel_x
-    global can_jump
 
+    # key down event
     if(event.type == pygame.KEYDOWN):
         if(event.key == pygame.K_LEFT):
             player_animation_counter += 1
@@ -164,27 +136,13 @@ def gameControls(event):
             player_vel_y = -18
             player_animation_counter = 0
             can_jump = False
-
-
+    # key up event
     if event.type == pygame.KEYUP:
         if event.key == pygame.K_LEFT:
             player_vel_x = 0
         if event.key == pygame.K_RIGHT:
             player_vel_x = 0
-        try:
-            import main
-            if event.key == pygame.K_r and main.game_state=="end":
-                player_rect.center=(250,300)
-                score = 0
-                main.game_state="play"
-                collected_coins=0
-                enemy_surf = bird_right_surf
-                platforms[len(platforms) -1]["rect"].x = 220
-                platforms[len(platforms) -1]["rect"].y = 350
-                enemy_rect.x=-99
-                enemy_vel_x = -2
-        except:
-            print("Declare game_state variable...")
+
 
 
 
@@ -214,16 +172,15 @@ def shoot():
 
 
 def gameplay():
-    global platforms, stone_surf, screen, coin_animation_counter
-    global player_rect, player_surf, player_animation_counter
-    global player_vel_x, player_vel_y, screen_width, screen_height, score
-    global screen_width, screen_height, collected_coins
-    global enemy_animation_counter, enemy_surf, enemy_rect, egg_rect
-    global enemy_vel_x, egg_surf, ufo_surf, energy_ball_surf, score_surf
+    global screen, platforms, stone_surf,score
+    global coin_animation_counter, player_animation_counter, enemy_animation_counter
+    global player_rect, player_surf, player_vel_x, player_vel_y
+    global screen_width, screen_height
+    global enemy_surf, enemy_rect, egg_rect, egg_surf, energy_ball_surf
+    global enemy_vel_x, ufo_surf, can_jump, collected_coins
 
     try:
         import main
-
 
         if(coin_animation_counter >= len(coin_surf)):
             coin_animation_counter = 0
@@ -240,8 +197,8 @@ def gameplay():
         for platform in platforms:
             screen.blit(platform_surf[0],platform["rect"])
 
-            if(main.game_state == "play"):
-                platform["rect"].y+= (2+int(score/400))
+
+            platform["rect"].y+= (2+int(score/400))
 
             if(platform["type"] == "flower"):
                 screen.blit(flower_surf[0],(platform["rect"].x,platform["rect"].y - 25))
@@ -271,65 +228,55 @@ def gameplay():
 
         coin_animation_counter+=1
 
+        # show player
         screen.blit(player_surf[player_animation_counter], player_rect)
 
-        if(main.game_state == "play"):
-            # Adding gravity
-            player_vel_y += 0.8
 
-            if(player_vel_x != 0):
-                player_animation_counter = 0
+        # Adding gravity
+        player_vel_y += 0.8
 
-            #Calculating the score and increasing it only when player goes up
-            if(player_vel_y < 0):
-                score+=1
+        if(player_vel_x != 0):
+            player_animation_counter = 0
 
-
-            # bring back the player to the canvas
-            if(player_rect.x < -30):
-                player_rect.x = screen_width
-
-            if (player_rect.x > screen_width):
-                player_rect.x = -30
+        #Calculating the score and increasing it only when player goes up
+        if(player_vel_y < 0):
+            score+=1
 
 
-            if ((player_rect.y > screen_height + 100) or
-                player_rect.colliderect(enemy_rect) or
-                player_rect.colliderect(egg_rect)):
-                main.game_state = "end"
-                player_vel_y = 0
+        # bring back the player to the canvas
+        if(player_rect.x < -30):
+            player_rect.x = screen_width
 
-            # update player x and y in each frame
-            player_rect.x += player_vel_x
-            player_rect.y += player_vel_y
-
-            # update enemy x in each frame
-            enemy_rect.x += enemy_vel_x
-            # egg_rect.y += 2
+        if (player_rect.x > screen_width):
+            player_rect.x = -30
 
 
-            if enemy_rect.x > (screen_width + 100):
-               enemy_surf = bird_left_surf
-               enemy_vel_x *= -1
-            elif enemy_rect.x < -100:
-               enemy_surf = bird_right_surf
-               enemy_vel_x *= -1
+        
+
+        # update player x and y in each frame
+        player_rect.x += player_vel_x
+        player_rect.y += player_vel_y
+
+        # update enemy x in each frame
+        enemy_rect.x += enemy_vel_x
+
+        if enemy_rect.x > (screen_width + 100):
+           enemy_surf = bird_left_surf
+           enemy_vel_x *= -1
+        elif enemy_rect.x < -100:
+           enemy_surf = bird_right_surf
+           enemy_vel_x *= -1
 
 
-            if score >  250:
-                enemy_surf = ufo_surf
-                if enemy_surf == ufo_surf:
-                    egg_surf = energy_ball_surf
+        if score >  250:
+            enemy_surf = ufo_surf
+            if enemy_surf == ufo_surf:
+                egg_surf = energy_ball_surf
 
-            screen.blit(egg_surf[0],egg_rect)
-            screen.blit(enemy_surf[int(enemy_animation_counter)],enemy_rect)
+        screen.blit(egg_surf[0],egg_rect)
+        screen.blit(enemy_surf[int(enemy_animation_counter)],enemy_rect)
 
-            enemy_animation_counter += 0.4
-
-        elif main.game_state == "end":
-            screen.blit(score_surf[0],(120,150))
-            score_text = over_font.render(str(score), False, (255,255,255))
-            screen.blit(score_text,(240,250))
+        enemy_animation_counter += 0.4
 
 
 
