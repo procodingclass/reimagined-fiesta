@@ -79,7 +79,7 @@ score = 0
 collected_coins = 0
 
 enemy_vel_x = 1
-
+can_jump = True
 
 platform_surf =loadImages(["assets/platform.png"])
 stone_surf = loadImages(["assets/stone.png"])
@@ -102,7 +102,7 @@ bird_right_surf = loadImages(["assets/bird/1.png","assets/bird/2.png",
 egg_surf = loadImages(["assets/egg.png"])
 energy_ball_surf = loadImages(["assets/energyball.png"])
 ufo_surf = loadImages(["assets/ufo.png"])
-
+score_surf =loadImages(["assets/scoreimg.png"])
 
 
 # scale images
@@ -146,6 +146,8 @@ def createPlatform(x,y):
 def gameControls(event):
     global player_surf, player_right_surf, player_left_surf
     global player_vel_x, player_vel_y, player_animation_counter
+    global score, player_rect, collected_coins, enemy_rect, enemy_vel_x
+    global can_jump
 
     if(event.type == pygame.KEYDOWN):
         if(event.key == pygame.K_LEFT):
@@ -158,31 +160,31 @@ def gameControls(event):
             player_surf = player_right_surf
             player_vel_x = 5
 
-        if(event.key == pygame.K_UP):
+        if(event.key == pygame.K_UP and can_jump):
             player_vel_y = -18
             player_animation_counter = 0
+            can_jump = False
+
 
     if event.type == pygame.KEYUP:
         if event.key == pygame.K_LEFT:
             player_vel_x = 0
         if event.key == pygame.K_RIGHT:
             player_vel_x = 0
-        # if event.key == pygame.K_SPACE:
-        #     gameState="play"
-        # if event.key == pygame.K_r and gameState=="end":
-        #     player.center=[250,300]
-        #     score=0
-        #     gameState="play"
-        #     collected_coins=0
-        #     bg_index=0
-        #     bird_animation_right=loadAnimations(["assets/bird/1.png","assets/bird/2.png","assets/bird/3.png","assets/bird/4.png"])
-        #     bird_animation_left=flipAnimations(bird_animation_right)
-        #     egg_surf=pygame.image.load("assets/bird/egg.png")
-        #     enemy_animation=bird_animation_right
-        #     platforms[5][0].x=220
-        #     platforms[5][0].y=350
-        #     enemy.x=-99
-        #     enemy_velocity=-3
+        try:
+            import main
+            if event.key == pygame.K_r and main.game_state=="end":
+                player_rect.center=(250,300)
+                score = 0
+                main.game_state="play"
+                collected_coins=0
+                enemy_surf = bird_right_surf
+                platforms[len(platforms) -1]["rect"].x = 220
+                platforms[len(platforms) -1]["rect"].y = 350
+                enemy_rect.x=-99
+                enemy_vel_x = -2
+        except:
+            print("Declare game_state variable...")
 
 
 
@@ -202,16 +204,25 @@ def initialPlatforms():
 initialPlatforms()
 
 
+
+def shoot():
+    global enemy_rect, egg_rect
+    egg_rect.y+=7
+    if egg_rect.y>900:
+        egg_rect.top =enemy_rect.bottom
+        egg_rect.x = enemy_rect.x
+
+
 def gameplay():
     global platforms, stone_surf, screen, coin_animation_counter
     global player_rect, player_surf, player_animation_counter
     global player_vel_x, player_vel_y, screen_width, screen_height, score
     global screen_width, screen_height, collected_coins
     global enemy_animation_counter, enemy_surf, enemy_rect, egg_rect
-    global enemy_vel_x, egg_surf, ufo_surf, energy_ball_surf
+    global enemy_vel_x, egg_surf, ufo_surf, energy_ball_surf, score_surf
 
     try:
-        from main import game_state
+        import main
 
 
         if(coin_animation_counter >= len(coin_surf)):
@@ -223,10 +234,13 @@ def gameplay():
         if(enemy_animation_counter >= len(enemy_surf)):
             enemy_animation_counter = 0
 
+        # shoot enemy egg and energy ball
+        shoot()
+
         for platform in platforms:
             screen.blit(platform_surf[0],platform["rect"])
 
-            if(game_state == "play"):
+            if(main.game_state == "play"):
                 platform["rect"].y+= (2+int(score/400))
 
             if(platform["type"] == "flower"):
@@ -253,15 +267,13 @@ def gameplay():
             if player_rect.colliderect(platform["rect"].x,platform["rect"].y - player_vel_y,
                 platform["rect"].width,platform["rect"].height) and player_rect.y < platform["rect"].y and player_vel_y>0:
                         player_vel_y = 0
+                        can_jump = True
 
         coin_animation_counter+=1
 
         screen.blit(player_surf[player_animation_counter], player_rect)
 
-        if game_state=="initial":
-            player_rect.center=(250,300)
-            score=0
-        elif(game_state == "play"):
+        if(main.game_state == "play"):
             # Adding gravity
             player_vel_y += 0.8
 
@@ -281,11 +293,10 @@ def gameplay():
                 player_rect.x = -30
 
 
-            if ((player_rect.y>screen_height + 100) or
+            if ((player_rect.y > screen_height + 100) or
                 player_rect.colliderect(enemy_rect) or
                 player_rect.colliderect(egg_rect)):
-
-                game_state = "end"
+                main.game_state = "end"
                 player_vel_y = 0
 
             # update player x and y in each frame
@@ -315,9 +326,12 @@ def gameplay():
 
             enemy_animation_counter += 0.4
 
-        elif game_state=="end":
+        elif main.game_state == "end":
+            screen.blit(score_surf[0],(120,150))
             score_text = over_font.render(str(score), False, (255,255,255))
             screen.blit(score_text,(240,250))
+
+
 
         # show score count
         score_text = score_font.render("Score : "+ str(score), False, (3,3,3))
