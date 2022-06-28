@@ -1,5 +1,5 @@
 import pygame, sys
-from  game import create_screen, gameplay
+from  game import create_screen, gameplay, gameControls
 
 screen = create_screen()
 
@@ -18,6 +18,17 @@ background_pos_y = -600
 game_state = "initial"
 
 while True:
+
+    for event in pygame.event.get():
+        if(event.type==pygame.QUIT):
+                pygame.quit()
+                sys.exit()
+        if event.type == pygame.KEYUP:
+            if event.key == pygame.K_SPACE:
+                game_state = "play"
+
+        gameControls(event)
+
 
     screen.fill((255,255,255))
     screen.blit(background_surf, (0, background_pos_y))

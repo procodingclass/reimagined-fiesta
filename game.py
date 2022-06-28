@@ -108,7 +108,7 @@ ufo_surf = loadImages(["assets/ufo.png"])
 # scale images
 coin_surf = scaleImages(coin_surf, 30, 30)
 player_right_surf = scaleImages(player_right_surf, 30, 43)
-bird_right_surf = scaleImages(bird_right_surf, 40, 40)
+bird_right_surf = scaleImages(bird_right_surf, 60, 60)
 
 # flip images
 player_left_surf = flipImages(player_right_surf)
@@ -124,7 +124,7 @@ enemy_surf = bird_right_surf
 player_rect =pygame.Rect(200,120,30,43)
 player_rect.center =(250,300)
 
-enemy_rect = pygame.Rect(10, 10, 40, 40)
+enemy_rect = pygame.Rect(10, 10, 60, 60)
 egg_rect = pygame.Rect(10,10,egg_surf[0].get_width(),egg_surf[0].get_height())
 
 
@@ -143,51 +143,46 @@ def createPlatform(x,y):
         "type" : random.choice(["stone", "flower", "bush", "coin"])
         })
 
-def handleGameControls():
+def gameControls(event):
     global player_surf, player_right_surf, player_left_surf
     global player_vel_x, player_vel_y, player_animation_counter
 
-    for event in pygame.event.get():
-        if(event.type==pygame.QUIT):
-                pygame.quit()
-                sys.exit()
+    if(event.type == pygame.KEYDOWN):
+        if(event.key == pygame.K_LEFT):
+            player_animation_counter += 1
+            player_surf = player_left_surf
+            player_vel_x = -5
 
-        if(event.type == pygame.KEYDOWN):
-            if(event.key == pygame.K_LEFT):
-                player_animation_counter += 1
-                player_surf = player_left_surf
-                player_vel_x = -5
+        if(event.key == pygame.K_RIGHT):
+            player_animation_counter+=1
+            player_surf = player_right_surf
+            player_vel_x = 5
 
-            if(event.key == pygame.K_RIGHT):
-                player_animation_counter+=1
-                player_surf = player_right_surf
-                player_vel_x = 5
+        if(event.key == pygame.K_UP):
+            player_vel_y = -18
+            player_animation_counter = 0
 
-            if(event.key == pygame.K_UP):
-                player_vel_y = -18
-                player_animation_counter = 0
-
-        if event.type == pygame.KEYUP:
-            if event.key == pygame.K_LEFT:
-                player_vel_x = 0
-            if event.key == pygame.K_RIGHT:
-                player_vel_x = 0
-            # if event.key == pygame.K_SPACE:
-            #     gameState="play"
-            # if event.key == pygame.K_r and gameState=="end":
-            #     player.center=[250,300]
-            #     score=0
-            #     gameState="play"
-            #     collected_coins=0
-            #     bg_index=0
-            #     bird_animation_right=loadAnimations(["assets/bird/1.png","assets/bird/2.png","assets/bird/3.png","assets/bird/4.png"])
-            #     bird_animation_left=flipAnimations(bird_animation_right)
-            #     egg_surf=pygame.image.load("assets/bird/egg.png")
-            #     enemy_animation=bird_animation_right
-            #     platforms[5][0].x=220
-            #     platforms[5][0].y=350
-            #     enemy.x=-99
-            #     enemy_velocity=-3
+    if event.type == pygame.KEYUP:
+        if event.key == pygame.K_LEFT:
+            player_vel_x = 0
+        if event.key == pygame.K_RIGHT:
+            player_vel_x = 0
+        # if event.key == pygame.K_SPACE:
+        #     gameState="play"
+        # if event.key == pygame.K_r and gameState=="end":
+        #     player.center=[250,300]
+        #     score=0
+        #     gameState="play"
+        #     collected_coins=0
+        #     bg_index=0
+        #     bird_animation_right=loadAnimations(["assets/bird/1.png","assets/bird/2.png","assets/bird/3.png","assets/bird/4.png"])
+        #     bird_animation_left=flipAnimations(bird_animation_right)
+        #     egg_surf=pygame.image.load("assets/bird/egg.png")
+        #     enemy_animation=bird_animation_right
+        #     platforms[5][0].x=220
+        #     platforms[5][0].y=350
+        #     enemy.x=-99
+        #     enemy_velocity=-3
 
 
 
@@ -210,7 +205,7 @@ initialPlatforms()
 def gameplay():
     global platforms, stone_surf, screen, coin_animation_counter
     global player_rect, player_surf, player_animation_counter
-    global player_vel_x, player_vel_y, screen_height, score
+    global player_vel_x, player_vel_y, screen_width, screen_height, score
     global screen_width, screen_height, collected_coins
     global enemy_animation_counter, enemy_surf, enemy_rect, egg_rect
     global enemy_vel_x, egg_surf, ufo_surf, energy_ball_surf
@@ -267,10 +262,6 @@ def gameplay():
             player_rect.center=(250,300)
             score=0
         elif(game_state == "play"):
-
-            # handle game controls
-            handleGameControls()
-
             # Adding gravity
             player_vel_y += 0.8
 
@@ -288,6 +279,14 @@ def gameplay():
 
             if (player_rect.x > screen_width):
                 player_rect.x = -30
+
+
+            if ((player_rect.y>screen_height + 100) or
+                player_rect.colliderect(enemy_rect) or
+                player_rect.colliderect(egg_rect)):
+
+                game_state = "end"
+                player_vel_y = 0
 
             # update player x and y in each frame
             player_rect.x += player_vel_x
@@ -312,9 +311,9 @@ def gameplay():
                     egg_surf = energy_ball_surf
 
             screen.blit(egg_surf[0],egg_rect)
-            screen.blit(enemy_surf[enemy_animation_counter],enemy_rect)
+            screen.blit(enemy_surf[int(enemy_animation_counter)],enemy_rect)
 
-            enemy_animation_counter += 1
+            enemy_animation_counter += 0.4
 
         elif game_state=="end":
             score_text = over_font.render(str(score), False, (255,255,255))
